@@ -94,11 +94,34 @@ const getOrders = async (req, res) => {
     }
 };
 
-const getMonthlyIncome = async () => {
+const getMonthlyIncome = async (req, res) => {
     try {
         const date = new Date();
         const LastMonth = new Date(date.setMonth(date.getMonth() - 1));
-        const prevMonth = new Date(new Date)(new Date())
+        const prevMonth = new Date(
+            new Date(LastMonth.setMonth(LastMonth.getMonth() - 1))
+        );
+
+        const monthlyIncome = await Order.aggregate([
+            {
+                $match: { createdAt: {$gte: prevMonth } },
+            },{
+                $project: {
+                    month: {$month : "$createdAt"},
+                    sales: "$amount",
+                },
+            }, {
+                $group: {
+                    _id: "$month",
+                    total: {$sum: "$sales"},
+                },
+            },
+        ]);
+
+        res.status(200).json({
+            message: "Monthly Income fetched successfully",
+            monthlyIncome,
+        });
 
     } catch (error) {
         console.error(error);
@@ -116,4 +139,5 @@ module.exports = {
     deleteOrder,
     getUserOrder,
     getOrders,
+    getMonthlyIncome,
 };
